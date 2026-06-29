@@ -212,3 +212,130 @@ ClassNotFoundException: com.kurekurecredential.KurekureCredentialApplicationTest
 - `main` ブランチで初回コミットを作成する
 - `origin` に `https://github.com/naoyas0619-dev/crecredential.git` を設定する
 - GitHubへpushする
+
+## 2026-06-29
+
+### 実施したこと
+
+- `.\gradlew.bat test` の失敗原因を調査した
+- 疑わしい原因を以下の順で切り分けた
+  - Java 24の影響
+  - Gradleテストクラスパスの問題
+  - OneDrive + 日本語パスの影響
+  - Gradle Wrapper / キャッシュ不整合
+
+### 調査結果
+
+- 直接原因は、プロジェクトパスに日本語文字が含まれていることだった
+- 元のパス `C:\Users\naoya\OneDrive\ドキュメント\AWS_Springboot` では `gradlew test` が失敗した
+- ASCIIのみのパス `C:\tmp\AWS_Springboot_ascii` では `gradlew test` が成功した
+- 日本語を含むパス `C:\tmp\日本語パス\AWS_Springboot` では同じ `ClassNotFoundException` で失敗した
+- OneDrive配下でもASCIIのみのパス `C:\Users\naoya\OneDrive\AWS_Springboot_ascii` では成功した
+- そのため、OneDrive自体ではなく、日本語パスが原因と判断した
+
+### 原因ではないと判断したもの
+
+- Java 24
+  - JDK 21で実行しても同じ `ClassNotFoundException` が発生したため
+- Gradleテストクラスパス不足
+  - `build/classes/java/test` にテストクラスが生成されていたため
+  - Gradleテストワーカーのクラスパスにも `build/classes/java/test` が含まれていたため
+  - 同じクラスパスを使って手動でテストクラスをロードできたため
+- Gradle Wrapper / キャッシュ不整合
+  - 同じWrapperと同じGradleキャッシュを使っても、ASCIIパスでは成功し、日本語パスでは失敗したため
+  - 別のGradleホームを使っても、ASCIIパスでは成功し、日本語パスでは失敗したため
+
+### 発生しているエラー
+
+```txt
+ClassNotFoundException: com.kurekurecredential.KurekureCredentialApplicationTests
+```
+
+### 次にやること
+
+- 開発作業用のディレクトリをASCIIのみのパスへ移すか検討する
+- 例: `C:\Users\naoya\OneDrive\AWS_Springboot` または `C:\dev\AWS_Springboot`
+- 移動後に `.\gradlew.bat clean test` が成功することを確認する
+
+### 追加対応
+
+- 日本語パスによる `gradlew test` 失敗を避けるため、作業ディレクトリを `C:\dev\AWS_Springboot` に移す方針にした
+- 移動先では `.\gradlew.bat clean test` を実行して、テストが成功することを確認する
+
+### 認証API実装の作業開始
+
+- `C:\dev\AWS_Springboot` を今後の作業ディレクトリとして使用する
+- 認証APIの実装に着手する
+- 実装対象はユーザー登録、ログイン、ログインユーザー取得とする
+- JWTライブラリは `jjwt` を使用する
+- Spring Securityはステートレス構成にする
+
+### 認証API実装で実施したこと
+
+- `jjwt` の依存関係を追加した
+- Spring Securityをステートレス構成にした
+- `/api/auth/register` と `/api/auth/login` を未認証で利用できるようにした
+- その他のAPIは認証必須にした
+- `BCryptPasswordEncoder` によるパスワードハッシュ化を追加した
+- JWT発行・検証用の `JwtService` を追加した
+- JWTを `Authorization: Bearer ...` から読み取るフィルタを追加した
+- ユーザー登録APIを実装した
+- ログインAPIを実装した
+- ログインユーザー取得APIを実装した
+- バリデーションエラー、メールアドレス重複、ログイン失敗時のエラーレスポンスを追加した
+- 認証APIの結合テストを追加した
+
+### 作成・更新したファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `build.gradle` | JWTライブラリ `jjwt` を追加 |
+| `src/main/java/com/kurekurecredential/config/SecurityConfig.java` | Spring Security設定を追加 |
+| `src/main/java/com/kurekurecredential/security/AuthUserDetails.java` | 認証ユーザー情報を表す `UserDetails` 実装を追加 |
+| `src/main/java/com/kurekurecredential/security/AuthUserDetailsService.java` | メールアドレスでユーザーを取得する `UserDetailsService` を追加 |
+| `src/main/java/com/kurekurecredential/security/JwtService.java` | JWT発行・検証処理を追加 |
+| `src/main/java/com/kurekurecredential/security/JwtAuthenticationFilter.java` | Bearerトークン認証フィルタを追加 |
+| `src/main/java/com/kurekurecredential/service/auth/AuthService.java` | ユーザー登録、ログイン、ログインユーザー取得の業務処理を追加 |
+| `src/main/java/com/kurekurecredential/web/auth/*.java` | 認証APIのControllerとリクエスト/レスポンスDTOを追加 |
+| `src/main/java/com/kurekurecredential/web/common/*.java` | 共通エラーレスポンスと例外ハンドラを追加 |
+| `src/test/java/com/kurekurecredential/web/auth/AuthControllerIntegrationTest.java` | 認証APIの結合テストを追加 |
+| `src/test/java/com/kurekurecredential/web/auth/JsonTestHelper.java` | テスト用JSONヘルパーを追加 |
+| `src/test/resources/application.properties` | テスト用JWT設定を追加 |
+
+### 検証結果
+
+以下のコマンドでテスト成功を確認した。
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+```
+
+確認した主な内容:
+
+- ユーザー登録が `201 Created` で成功する
+- レスポンスにパスワードが含まれない
+- 重複メールアドレスは `409 Conflict` になる
+- 正しいメールアドレス・パスワードでログインできる
+- ログイン成功時にJWTが返る
+- JWT付きで `/api/auth/me` を取得できる
+- パスワード誤りは `401 Unauthorized` になる
+- 未認証の `/api/auth/me` は拒否される
+
+### 発生した問題・対応
+
+- 認証実装後、テスト起動時に `app.jwt.secret` が解決できず失敗した
+  - 原因: `src/test/resources/application.properties` にJWT設定がなかった
+  - 対応: テスト用の `app.jwt.secret` と `app.jwt.expiration-seconds` を追加した
+  - 結果: `.\gradlew.bat clean test --no-daemon` が成功した
+
+### 次にやること
+
+- 初期資格マスタ投入用のFlyway SQLを作成する
+- 資格一覧・詳細取得APIを実装する
+- 認証済みAPIの所有者チェック方針をサービス層に反映していく
