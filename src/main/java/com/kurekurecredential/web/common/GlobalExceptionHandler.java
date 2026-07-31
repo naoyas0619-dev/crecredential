@@ -29,6 +29,12 @@ public class GlobalExceptionHandler {
 				.body(ErrorResponse.of("CONFLICT", exception.getMessage()));
 	}
 
+	@ExceptionHandler(ResourceNotFoundException.class)
+	ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException exception) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND)
+				.body(ErrorResponse.of("NOT_FOUND", exception.getMessage()));
+	}
+
 	@ExceptionHandler(BadCredentialsException.class)
 	ResponseEntity<ErrorResponse> handleBadCredentials() {
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

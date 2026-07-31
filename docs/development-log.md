@@ -339,3 +339,72 @@ BUILD SUCCESSFUL
 - 初期資格マスタ投入用のFlyway SQLを作成する
 - 資格一覧・詳細取得APIを実装する
 - 認証済みAPIの所有者チェック方針をサービス層に反映していく
+
+## 2026-07-31
+
+### 初期資格マスタ投入と資格API実装
+
+- Flywayの `V2` マイグレーションで初期資格マスタ6件を追加した
+  - AWS Certified Solutions Architect - Associate
+  - AWS Certified Developer - Associate
+  - Oracle Certified Java Programmer, Silver SE 17
+  - Oracle Certified Java Programmer, Gold SE 17
+  - 基本情報技術者試験
+  - 応用情報技術者試験
+- 試験名、試験形式、合格基準、公式URLは2026年7月時点のAWS、Oracle、IPA公式情報を基準にした
+- 推奨学習時間は学習計画を作成するためのアプリ独自の目安として設定した
+- `GET /api/certifications` を実装した
+- `keyword` による資格名・提供元の部分一致検索を実装した
+- `GET /api/certifications/{certificationId}` を実装した
+- 存在しない資格IDに対する共通の `404 Not Found` レスポンスを追加した
+- 一覧は資格名の昇順で返すようにした
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/resources/db/migration/V2__insert_initial_certifications.sql` | 初期資格マスタ6件を追加 |
+| `db/migration/V2__insert_initial_certifications.sql` | 管理用のFlyway SQLコピーを追加 |
+| `src/main/java/com/kurekurecredential/repository/CertificationRepository.java` | 一覧・検索用クエリを追加 |
+| `src/main/java/com/kurekurecredential/service/certification/CertificationService.java` | 資格一覧・詳細取得処理を追加 |
+| `src/main/java/com/kurekurecredential/web/certification/*.java` | 資格APIのControllerとレスポンスDTOを追加 |
+| `src/main/java/com/kurekurecredential/web/common/*.java` | 共通の404例外処理を追加 |
+| `src/test/java/com/kurekurecredential/web/certification/CertificationControllerIntegrationTest.java` | 資格APIの結合テストを追加 |
+
+### テスト対象
+
+- 未認証では資格一覧を取得できない
+- 認証済みユーザーは初期資格6件を取得できる
+- 資格一覧の項目に詳細説明を含めない
+- キーワードの前後空白を除去し、資格名・提供元で部分一致検索できる
+- 認証済みユーザーは資格詳細を取得できる
+- 存在しない資格IDは `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全11件のテストが成功した。
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 11, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- テストではH2のPostgreSQL互換モードを使用し、Flywayの `V1` と `V2` が適用されることを確認した
+- Docker Desktop起動後、PostgreSQL 16.13のコンテナを起動して実DBでも確認した
+- 実PostgreSQLの `flyway_schema_history` で `V1` と `V2` が成功していることを確認した
+- 実PostgreSQLの `certifications` テーブルに初期資格6件が登録されていることを確認した
+- 実PostgreSQLへ接続したアプリで、ユーザー登録・ログイン・JWT認証を行った
+- 資格一覧6件、`AWS` キーワード検索2件、資格詳細1件をAPIから取得できることを確認した
+- API確認後、確認用ユーザーを削除し、Spring Bootプロセスを停止した
+- PostgreSQLコンテナは今後のローカル開発で利用できるように起動状態を維持した
+
+### 次にやること
+
+- 資格目標の作成・一覧・詳細・更新APIを実装する
+- 認証ユーザー本人の資格目標だけを操作できる所有者チェックを実装する

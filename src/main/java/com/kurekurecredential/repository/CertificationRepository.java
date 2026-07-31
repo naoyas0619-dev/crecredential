@@ -6,5 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CertificationRepository extends JpaRepository<Certification, Long> {
 
-	List<Certification> findByNameContainingIgnoreCaseOrProviderContainingIgnoreCase(String name, String provider);
+	List<Certification> findAllByOrderByNameAsc();
+
+	List<Certification> findByNameContainingIgnoreCaseOrProviderContainingIgnoreCaseOrderByNameAsc(
+			String name,
+			String provider);
 }
