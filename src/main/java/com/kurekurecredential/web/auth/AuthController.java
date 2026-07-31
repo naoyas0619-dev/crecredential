@@ -2,6 +2,7 @@ package com.kurekurecredential.web.auth;
 
 import com.kurekurecredential.security.AuthUserDetails;
 import com.kurekurecredential.service.auth.AuthService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,11 +23,13 @@ public class AuthController {
 
 	@PostMapping("/register")
 	@ResponseStatus(HttpStatus.CREATED)
+	@SecurityRequirements
 	public UserResponse register(@Valid @RequestBody RegisterRequest request) {
 		return authService.register(request);
 	}
 
 	@PostMapping("/login")
+	@SecurityRequirements
 	public LoginResponse login(@Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
 	}

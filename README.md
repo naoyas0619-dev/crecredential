@@ -11,6 +11,7 @@
 - Spring Data JPA
 - Flyway
 - PostgreSQL
+- OpenAPI / Swagger UI
 - Gradle
 - Docker
 
@@ -48,12 +49,26 @@ Port: 5432
 .\gradlew.bat bootRun
 ```
 
+起動後、以下を利用できます。
+
+- Swagger UI: <http://localhost:8080/swagger-ui.html>
+- OpenAPI JSON: <http://localhost:8080/v3/api-docs>
+
+Swagger UIから認証が必要なAPIを試す場合は、ユーザー登録・ログイン後に取得した `accessToken` を画面上部の `Authorize` へ入力します。`Bearer ` は自動付与されるため、トークン文字列だけを入力します。
+
+## テスト
+
+```powershell
+.\gradlew.bat test --no-daemon
+```
+
 ## Dockerイメージ作成
 
 ```powershell
-.\gradlew.bat clean bootJar -x test
 docker build -t kurekure-credential:local .
 ```
+
+Dockerイメージはマルチステージビルドで作成するため、事前にローカルでJarを生成する必要はありません。
 
 ## メモ
 
@@ -62,5 +77,3 @@ docker build -t kurekure-credential:local .
 ```properties
 org.gradle.jvmargs=-Djavax.net.ssl.trustStoreType=Windows-ROOT
 ```
-
-テスト実行は現時点でGradleテストワーカーのクラス読み込み問題により失敗しています。アプリ本体のコンパイルとJar作成は `.\gradlew.bat clean build -x test` で確認済みです。

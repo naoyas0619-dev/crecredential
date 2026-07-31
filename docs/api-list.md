@@ -68,6 +68,17 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 }
 ```
 
+### 2.6 OpenAPI / Swagger UI
+
+アプリ起動後、以下のURLからAPI仕様を確認できる。
+
+| 用途 | URL | 認証 |
+| --- | --- | --- |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` | 不要 |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` | 不要 |
+
+Swagger UIから認証が必要なAPIを実行する場合は、ログインAPIで取得した `accessToken` を画面上部の `Authorize` へ入力する。`Bearer ` はSwagger UIが自動で付与するため、トークン文字列だけを入力する。
+
 ## 3. API一覧
 
 ### 3.1 認証API

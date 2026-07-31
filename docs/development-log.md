@@ -934,3 +934,161 @@ Tests: 55, Failures: 0, Errors: 0, Skipped: 0
 - OpenAPIドキュメントとSwagger UIを導入する
 - JWT Bearer認証をSwagger UIから設定できるようにする
 - API仕様JSONとSwagger UIへのアクセスを自動テストする
+
+### OpenAPI / Swagger UI導入
+
+- `springdoc-openapi-starter-webmvc-ui` を追加した
+- Spring Boot 3.5.xとの公式互換表に基づき、springdoc 2.8.17を採用した
+- `GET /v3/api-docs` でOpenAPI JSONを公開した
+- `/swagger-ui.html` でSwagger UIを公開した
+- OpenAPIのタイトル、説明、バージョンを設定した
+- HTTP Bearer方式のJWTセキュリティスキームを定義した
+- Swagger UIの `Authorize` へアクセストークンを入力できるようにした
+- JWTを入力後に画面を再読み込みしても認証情報を保持する設定を追加した
+- ユーザー登録・ログインはOpenAPI上でも認証不要とした
+- OpenAPI JSONとSwagger UIだけをSpring Securityの認証対象外にした
+- READMEとAPI一覧へ利用URLとJWT入力方法を追加した
+- READMEに残っていた古いテスト失敗の記述を削除し、現在のテスト実行方法へ更新した
+
+参考:
+
+- springdoc公式互換表: <https://springdoc.org/faq.html>
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `build.gradle` | springdoc 2.8.17の依存関係を追加 |
+| `src/main/java/com/kurekurecredential/config/OpenApiConfig.java` | API情報とJWTセキュリティスキームを定義 |
+| `src/main/java/com/kurekurecredential/config/SecurityConfig.java` | OpenAPI JSONとSwagger UIを認証対象外に設定 |
+| `src/main/java/com/kurekurecredential/web/auth/AuthController.java` | 登録・ログインをOpenAPI上で認証不要に設定 |
+| `src/main/resources/application.properties` | Swagger UIのURLと認証保持設定を追加 |
+| `src/test/java/com/kurekurecredential/config/OpenApiIntegrationTest.java` | OpenAPI JSONとSwagger UIの結合テストを追加 |
+| `README.md` | Swagger UIの利用方法とテスト手順を追加 |
+| `docs/api-list.md` | OpenAPI JSONとSwagger UIのURLを追記 |
+
+### テスト対象
+
+- 未認証でOpenAPI JSONを取得できる
+- OpenAPIのタイトルとバージョンが設定されている
+- Bearer JWTセキュリティスキームが出力される
+- 進捗サマリーを含む実装済みAPIがOpenAPIへ出力される
+- ユーザー登録・ログインがOpenAPI上で認証不要になっている
+- 未認証でSwagger UIへアクセスできる
+- `/swagger-ui.html` からUI本体へリダイレクトされる
+- Swagger UIのHTMLを取得できる
+
+### 検証結果
+
+以下のコマンドで全57件のテストが成功した。
+
+```powershell
+.\gradlew.bat test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 57, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に接続したアプリを8081番ポートで起動した
+- OpenAPI JSONが `200 OK` で取得できることを確認した
+- OpenAPI JSONにAPIタイトル、バージョン、Bearer JWT設定、実装済み22パスが含まれることを確認した
+- `/swagger-ui.html` が `/swagger-ui/index.html` へ `302 Found` を返すことを確認した
+- Swagger UI本体が `200 OK` で取得できることを確認した
+- Swagger UIの認証情報保持設定が出力されることを確認した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 発生した問題・対応
+
+- 実API確認で使用したWindows PowerShellが `Invoke-WebRequest` の `SkipHttpErrorCheck` オプションに対応していなかった
+  - 原因: 利用中のWindows PowerShellが当該オプションを持たないバージョンだった
+  - 対応: リダイレクトヘッダーの確認だけ `curl.exe` に切り替えた
+  - 結果: Swagger UIの `302` と遷移先を確認できた
+
+### 次にやること
+
+- 全機能の回帰テストとビルドを実施する
+- Gitの状態とPostgreSQLの確認用データ残存を確認する
+- MVPバックエンド完了時点の到達内容と次工程を開発ログへ整理する
+
+### 全体回帰テストとDocker実行確認
+
+- OpenAPI導入後、クリーンビルドから全テストと実行可能Jar作成を行った
+- PostgreSQLコンテナが正常稼働していることを確認した
+- Flyway V1、V2、V3がすべて成功状態であることを確認した
+- 模擬試験・進捗サマリーのPostgreSQL確認用ユーザーが残っていないことを確認した
+- 8080、8081番ポートに検証用Spring Bootプロセスが残っていないことを確認した
+- Dockerイメージ作成時に見つかったDockerfileと `.dockerignore` の不整合を修正した
+- Dockerイメージをマルチステージビルドで作成するようにした
+- ビルド用コンテナではJava 21 JDK、実行用コンテナではJava 21 JREを使用した
+- 実行コンテナを非rootのUID `10001` で動かすようにした
+- 作成したイメージからアプリコンテナを起動し、ホスト側PostgreSQLへ接続できることを確認した
+- Docker上のアプリでFlyway、OpenAPI JSON、Swagger UIが正常動作することを確認した
+- 確認用アプリコンテナと確認用イメージを削除し、PostgreSQLコンテナだけを維持した
+
+### 検証結果
+
+以下のコマンドで全57件のテストと実行可能Jar作成が成功した。
+
+```powershell
+.\gradlew.bat clean test bootJar --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 57, Failures: 0, Errors: 0, Skipped: 0
+Jar: kurekure-credential-0.0.1-SNAPSHOT.jar
+```
+
+Docker確認:
+
+```powershell
+docker build -t kurekure-credential:openapi-check .
+docker run -d --name kurekure-credential-app-check `
+  -p 8082:8080 `
+  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/kurekure_credential `
+  -e DB_USERNAME=kurekure `
+  -e DB_PASSWORD=kurekure_password `
+  -e JWT_SECRET=docker-validation-secret-with-sufficient-length-123 `
+  kurekure-credential:openapi-check
+```
+
+確認結果:
+
+```txt
+Runtime user: 10001
+OpenAPI: 200 OK
+Swagger UI: 200 OK
+Flyway: Successfully validated 3 migrations
+```
+
+### 発生した問題・対応
+
+- 当初のDockerfileでは `COPY build/libs/*.jar app.jar` を実行していたが、`.dockerignore` が `build` を除外していた
+  - 原因: ローカル成果物をコピーする方針とDockerビルドコンテキストの除外方針が矛盾していた
+  - 対応: Docker内でGradle Wrapperを使ってJarを生成するマルチステージビルドへ変更した
+  - 結果: ローカルにJarがなくてもDockerイメージを作成できるようになった
+- 最初のマルチステージビルドではLinuxコンテナ内のGradle依存解決に失敗した
+  - 原因: Windows用の `gradle.properties` が `Windows-ROOT` 証明書ストアを指定していた
+  - 対応: DockerのビルドステージへWindows専用の `gradle.properties` をコピーしないようにした
+  - 結果: Linux標準の証明書ストアで依存関係を取得し、イメージ作成に成功した
+
+### MVPバックエンド到達状況
+
+- 認証API、JWT保護、ユーザーごとのデータ分離を実装済み
+- 資格・教材の初期マスタと参照APIを実装済み
+- 資格目標、学習計画、学習タスク、学習ログ、模擬試験結果APIを実装済み
+- 予定・実績時間、タスク完了率、最新模擬試験を含む進捗サマリーAPIを実装済み
+- PostgreSQL、Flyway、Docker、OpenAPI / Swagger UIを動作確認済み
+- 自動テスト57件が成功している
+
+### 次にやること
+
+- AWS ECS Fargate + RDS for PostgreSQLへのデプロイ設計を具体化する
+- 本番用の環境変数、シークレット、ネットワーク、ログ、ヘルスチェック方針を整理する
+- AWSで料金が発生するリソースを作成する前に、構成と費用見込みを確認する
