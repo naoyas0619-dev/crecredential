@@ -708,3 +708,76 @@ Tests: 38, Failures: 0, Errors: 0, Skipped: 0
 
 - 学習ログの作成・一覧・詳細・更新APIを実装する
 - 任意指定するタスク・教材と資格目標の整合性、所有者を確認する
+
+### 学習ログAPI実装
+
+- `POST /api/certification-goals/{goalId}/study-logs` を実装した
+- `GET /api/study-logs` を実装した
+- `goalId`、`studiedFrom`、`studiedTo` の組み合わせ検索を実装した
+- `GET /api/study-logs/{logId}` を実装した
+- `PUT /api/study-logs/{logId}` を実装した
+- 一覧は学習日の降順、同日の場合はIDの降順で返すようにした
+- 学習時間を1分以上に制限した
+- 学習日を資格目標の学習期間内に制限した
+- タスクは任意指定とし、同じ資格目標に属するタスクだけを関連付けられるようにした
+- 教材は任意指定とし、資格目標と同じ資格向けの教材だけを関連付けられるようにした
+- 学習ログ、資格目標、タスクの所有者チェックを実装した
+- 他ユーザーの学習ログ・タスクへのアクセスを `403 Forbidden` にした
+- 学習実績を維持するため、削除APIはMVP対象外にした
+- PostgreSQLのNULL日付パラメータ型問題を避けるため、検索日付をJPQLで明示的に `date` 型へキャストした
+- 学習ログ用テーブルはV1で作成済みのため、Flywayマイグレーションの追加は行わなかった
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/java/com/kurekurecredential/repository/StudyLogRepository.java` | 所有ユーザーと日付条件を組み合わせた学習ログ検索を追加 |
+| `src/main/java/com/kurekurecredential/service/studylog/StudyLogService.java` | 学習ログの作成・一覧・詳細・更新と関連整合性チェックを追加 |
+| `src/main/java/com/kurekurecredential/web/studylog/*.java` | Controllerとリクエスト・レスポンスDTOを追加 |
+| `src/test/java/com/kurekurecredential/web/studylog/StudyLogControllerIntegrationTest.java` | 学習ログAPIの結合テストを追加 |
+| `docs/api-list.md` | 一覧順序、関連整合性、削除方針を追記 |
+
+### テスト対象
+
+- 未認証では学習ログAPIを利用できない
+- タスク・教材付きの学習ログを作成できる
+- 資格目標の期間外の学習日は拒否される
+- 学習時間が0分の場合は拒否される
+- 別の資格目標に属するタスクは関連付けできない
+- 別の資格向け教材は関連付けできない
+- 自分の学習ログだけを学習日の新しい順で取得できる
+- 資格目標と学習日範囲で絞り込める
+- 所有ユーザーが学習ログを詳細取得・更新できる
+- 更新時にタスク・教材の関連を解除できる
+- 他ユーザーは学習ログやタスクを利用できない
+- 不正な学習日範囲を拒否する
+- 存在しない学習ログIDは `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全45件のテストが成功した。
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 45, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に接続したアプリを8081番ポートで起動した
+- 実APIで資格目標、学習タスク、教材付き学習ログを作成した
+- 学習ログを120分、理解度 `HIGH` に更新できることを確認した
+- 日付条件なし一覧と資格目標・日付範囲による絞り込みを確認した
+- 実DBの `study_logs` で学習時間、理解度、タスクID、教材IDを確認した
+- 別ユーザーによる学習ログ詳細取得が `403 Forbidden` になることを確認した
+- API確認後、確認用ユーザー2件を関連データごと削除した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 次にやること
+
+- 模擬試験結果の作成・一覧・詳細・更新APIを実装する
+- 得点、満点、合格ライン、正答率の整合性を検証する

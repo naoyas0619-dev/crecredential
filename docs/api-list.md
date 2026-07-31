@@ -491,7 +491,6 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 | `GET` | `/study-logs` | 自分の学習ログ一覧取得 | 必要 | FR-606 |
 | `GET` | `/study-logs/{logId}` | 学習ログ詳細取得 | 必要 | FR-606 |
 | `PUT` | `/study-logs/{logId}` | 学習ログ更新 | 必要 | FR-602 |
-| `DELETE` | `/study-logs/{logId}` | 学習ログ削除 | 必要 | FR-006 |
 
 #### POST /certification-goals/{goalId}/study-logs
 
@@ -534,6 +533,10 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 | `goalId` | 任意 | 資格目標IDで絞り込み |
 | `studiedFrom` | 任意 | 学習日開始 |
 | `studiedTo` | 任意 | 学習日終了 |
+
+一覧は学習日の新しい順で返す。タスクを指定する場合は同じ資格目標のタスク、教材を指定する場合は資格目標と同じ資格向けの教材であることを確認する。
+
+学習実績を維持するため、MVPでは学習ログの削除APIを提供しない。
 
 ### 3.8 模擬試験結果API
 
