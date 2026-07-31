@@ -554,3 +554,72 @@ Tests: 26, Failures: 0, Errors: 0, Skipped: 0
 
 - 初期教材マスタをFlywayで投入する
 - 教材一覧・詳細取得APIを実装する
+
+### 初期教材マスタ投入と教材API実装
+
+- Flywayの `V3` マイグレーションで初期教材マスタ12件を追加した
+- 初期資格6件に対して公式教材・試験資料を各2件登録した
+- AWSは公式試験ガイドとAWS Skill Builderを登録した
+- Java Silver・GoldはOracleの試験内容チェックリストとdev.javaを登録した
+- 基本情報・応用情報はIPAのシラバスと公開問題・過去問題を登録した
+- 初期段階では正確性と更新性を優先し、公式教材だけを登録した
+- 書籍は出版年と評価を改めて確認し、別の初期データとして追加する方針にした
+- `GET /api/learning-resources` を実装した
+- `certificationId`、`resourceType`、`targetLevel` の組み合わせ検索を実装した
+- `GET /api/learning-resources/{resourceId}` を実装した
+- 一覧はおすすめ度の降順、同点の場合は教材タイトルの昇順で返すようにした
+- 存在しない資格IDによる絞り込みと存在しない教材IDは `404 Not Found` にした
+- 不正な教材種別・対象レベルは `400 Bad Request` にした
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/resources/db/migration/V3__insert_initial_learning_resources.sql` | 初期公式教材12件を追加 |
+| `db/migration/V3__insert_initial_learning_resources.sql` | 管理用のFlyway SQLコピーを追加 |
+| `src/main/java/com/kurekurecredential/repository/LearningResourceRepository.java` | 3条件を組み合わせた教材検索を追加 |
+| `src/main/java/com/kurekurecredential/service/resource/LearningResourceService.java` | 教材一覧・詳細取得処理を追加 |
+| `src/main/java/com/kurekurecredential/web/resource/*.java` | ControllerとレスポンスDTOを追加 |
+| `src/test/java/com/kurekurecredential/web/resource/LearningResourceControllerIntegrationTest.java` | 教材APIの結合テストを追加 |
+| `docs/api-list.md` | 初期教材方針と教材詳細レスポンスを追記 |
+
+### テスト対象
+
+- 未認証では教材APIを利用できない
+- 認証済みユーザーが初期教材12件を取得できる
+- 一覧レスポンスに詳細メモを含めない
+- 資格IDで教材を2件に絞り込める
+- 資格ID、教材種別、対象レベルを組み合わせて絞り込める
+- 教材詳細で資格名、提供元、公式フラグ、メモを取得できる
+- 存在しない資格IDによる絞り込みは `404 Not Found` になる
+- 不正な教材種別は `400 Bad Request` になる
+- 存在しない教材IDは `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全31件のテストが成功した。
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 31, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に `V3__insert_initial_learning_resources.sql` を適用した
+- 実DBの `flyway_schema_history` でV3が成功していることを確認した
+- 実DBの `learning_resources` に教材12件が登録されていることを確認した
+- 実APIで教材一覧12件を取得できることを確認した
+- 資格ID、`OFFICIAL_DOCUMENT`、`BEGINNER` の複合条件で1件に絞り込めることを確認した
+- 教材詳細の公式フラグと提供元を確認した
+- API確認後、確認用ユーザーを削除した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 次にやること
+
+- 学習タスクの作成・一覧・詳細・更新・完了APIを実装する
+- 学習タスクでも資格目標と学習計画項目の所有者整合性を確認する

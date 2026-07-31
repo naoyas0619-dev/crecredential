@@ -361,6 +361,9 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 | `GET` | `/learning-resources` | 教材一覧取得 | 必要 | FR-401 |
 | `GET` | `/learning-resources/{resourceId}` | 教材詳細取得 | 必要 | FR-401 |
 
+初期データでは、情報の正確性と更新性を優先し、AWS、Oracle、IPAが提供する公式教材・試験資料を登録する。
+書籍教材は出版年と評価を確認したうえで別の初期データとして追加する。
+
 #### GET /learning-resources
 
 クエリパラメータ:
@@ -390,6 +393,29 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
     }
   ],
   "total": 1
+}
+```
+
+#### GET /learning-resources/{resourceId}
+
+レスポンス例:
+
+```json
+{
+  "id": 1,
+  "certificationId": 1,
+  "certificationName": "AWS Certified Solutions Architect - Associate",
+  "title": "AWS Certified Solutions Architect - Associate 試験ガイド",
+  "url": "https://docs.aws.amazon.com/aws-certification/",
+  "resourceType": "OFFICIAL_DOCUMENT",
+  "author": "Amazon Web Services",
+  "publishedYear": null,
+  "recommendationScore": 5,
+  "targetLevel": "BEGINNER",
+  "estimatedStudyHours": 4,
+  "paid": false,
+  "official": true,
+  "memo": "出題分野と試験対象サービスを確認するための公式試験ガイド。"
 }
 ```
 
