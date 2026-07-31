@@ -781,3 +781,85 @@ Tests: 45, Failures: 0, Errors: 0, Skipped: 0
 
 - 模擬試験結果の作成・一覧・詳細・更新APIを実装する
 - 得点、満点、合格ライン、正答率の整合性を検証する
+
+### 模擬試験結果API実装
+
+- `POST /api/certification-goals/{goalId}/mock-exam-results` を実装した
+- `GET /api/mock-exam-results` を実装した
+- `goalId`、`examFrom`、`examTo` の組み合わせ検索を実装した
+- `GET /api/mock-exam-results/{resultId}` を実装した
+- `PUT /api/mock-exam-results/{resultId}` を実装した
+- 一覧は受験日の降順、同日の場合はIDの降順で返すようにした
+- レスポンスの `scoreGap` を「得点 - 合格ライン」で算出するようにした
+- 受験日を資格目標の学習期間内に制限した
+- 得点と合格ラインを満点以下に制限した
+- 正答率を0以上100以下に制限した
+- 資格目標と模擬試験結果の所有者チェックを実装した
+- 他ユーザーの資格目標・模擬試験結果へのアクセスを `403 Forbidden` にした
+- 模擬試験結果の推移を維持するため、削除APIはMVP対象外にした
+- PostgreSQLのNULL日付パラメータ型問題を避けるため、検索日付をJPQLで明示的に `date` 型へキャストした
+- 模擬試験結果用テーブルはV1で作成済みのため、Flywayマイグレーションの追加は行わなかった
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/java/com/kurekurecredential/repository/MockExamResultRepository.java` | 所有ユーザーと日付条件を組み合わせた模擬試験結果検索を追加 |
+| `src/main/java/com/kurekurecredential/service/mockexam/MockExamResultService.java` | 模擬試験結果の作成・一覧・詳細・更新と入力整合性チェックを追加 |
+| `src/main/java/com/kurekurecredential/web/mockexam/*.java` | Controllerとリクエスト・レスポンスDTOを追加 |
+| `src/test/java/com/kurekurecredential/web/mockexam/MockExamResultControllerIntegrationTest.java` | 模擬試験結果APIの結合テストを追加 |
+| `docs/api-list.md` | 検索条件、入力制約、削除方針を追記 |
+
+### テスト対象
+
+- 未認証では模擬試験結果APIを利用できない
+- 所有する資格目標へ模擬試験結果を作成できる
+- 得点差が正しく算出される
+- 資格目標の期間外の受験日は拒否される
+- 得点または合格ラインが満点を超える場合は拒否される
+- 正答率が100を超える場合は拒否される
+- 自分の模擬試験結果だけを受験日の新しい順で取得できる
+- 資格目標と受験日範囲で絞り込める
+- 所有ユーザーが模擬試験結果を詳細取得・更新できる
+- 他ユーザーは模擬試験結果を利用できない
+- 不正な受験日範囲を拒否する
+- 存在しない模擬試験結果IDは `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全51件のテストが成功した。
+
+```powershell
+.\gradlew.bat test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 51, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に接続したアプリを8080番ポートで起動した
+- 実APIで資格目標と模擬試験結果を作成した
+- 資格目標・受験日範囲による絞り込みを確認した
+- 得点を650点から780点へ更新し、得点差が `-70` から `60` へ変わることを確認した
+- 実DBの `mock_exam_results` で試験名、得点、合格ライン、正答率を確認した
+- 別ユーザーによる模擬試験結果詳細取得が `403 Forbidden` になることを確認した
+- API確認後、確認用ユーザー2件を関連データごと削除した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 発生した問題・対応
+
+- 最初のテスト実行に短いタイムアウトを設定したため、残ったGradleプロセスが `build` ディレクトリを一時的にロックした
+  - 対応: プロセス終了を確認後、`clean` を付けずにテストを再実行した
+  - 結果: 全51件のテストが成功した
+- PostgreSQL確認データの削除時にユーザーテーブル名を `user_accounts` と誤認した
+  - 原因: Entity名と物理テーブル名を混同した。実際のテーブル名は `users`
+  - 対応: マイグレーションとDB上のテーブル一覧を確認し、`users` から確認用ユーザーを削除した
+  - 結果: 確認用ユーザーが0件になったことを確認した
+
+### 次にやること
+
+- 資格目標ごとの進捗サマリーAPIを実装する
+- 予定・実績学習時間、タスク完了率、最新模擬試験結果を集計する

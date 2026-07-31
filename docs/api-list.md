@@ -546,7 +546,6 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 | `GET` | `/mock-exam-results` | 自分の模擬試験結果一覧取得 | 必要 | FR-704 |
 | `GET` | `/mock-exam-results/{resultId}` | 模擬試験結果詳細取得 | 必要 | FR-704 |
 | `PUT` | `/mock-exam-results/{resultId}` | 模擬試験結果更新 | 必要 | FR-702, FR-703 |
-| `DELETE` | `/mock-exam-results/{resultId}` | 模擬試験結果削除 | 必要 | FR-006 |
 
 #### POST /certification-goals/{goalId}/mock-exam-results
 
@@ -578,9 +577,24 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
   "passingScore": 720,
   "scoreGap": -70,
   "correctAnswerRate": 65.0,
-  "weakAreas": "VPC, IAM, Route 53"
+  "weakAreas": "VPC, IAM, Route 53",
+  "memo": "ネットワーク系の設問で失点が多い。"
 }
 ```
+
+#### GET /mock-exam-results
+
+クエリパラメータ:
+
+| パラメータ | 必須 | 説明 |
+| --- | --- | --- |
+| `goalId` | 任意 | 資格目標ID |
+| `examFrom` | 任意 | 受験日開始 |
+| `examTo` | 任意 | 受験日終了 |
+
+一覧は受験日の新しい順で返す。受験日は資格目標の学習期間内とし、得点と合格ラインは満点以下、正答率は0以上100以下であることを確認する。
+
+模擬試験の推移を維持するため、MVPでは模擬試験結果の削除APIを提供しない。
 
 ### 3.9 進捗サマリーAPI
 
