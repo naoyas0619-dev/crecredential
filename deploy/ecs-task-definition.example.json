@@ -1,0 +1,72 @@
+{
+  "family": "kurekure-credential-api-dev",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/kurekure-credential-ecs-execution-dev",
+  "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/kurekure-credential-ecs-task-dev",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "<AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/kurekure-credential:<GIT_COMMIT_SHA>",
+      "essential": true,
+      "portMappings": [
+        {
+          "name": "http",
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "environment": [
+        {
+          "name": "DB_URL",
+          "value": "jdbc:postgresql://<RDS_ENDPOINT>:5432/kurekure_credential?sslmode=require"
+        },
+        {
+          "name": "SERVER_PORT",
+          "value": "8080"
+        },
+        {
+          "name": "JWT_EXPIRATION_SECONDS",
+          "value": "3600"
+        },
+        {
+          "name": "JAVA_TOOL_OPTIONS",
+          "value": "-XX:InitialRAMPercentage=30.0 -XX:MaxRAMPercentage=70.0"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DB_USERNAME",
+          "valueFrom": "<DB_USERNAME_SECRET_ARN>"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "valueFrom": "<DB_PASSWORD_SECRET_ARN>"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "<JWT_SECRET_ARN>"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/kurekure-credential/dev",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "api"
+        }
+      },
+      "stopTimeout": 30
+    }
+  ]
+}

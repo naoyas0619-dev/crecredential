@@ -79,6 +79,18 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 
 Swagger UIから認証が必要なAPIを実行する場合は、ログインAPIで取得した `accessToken` を画面上部の `Authorize` へ入力する。`Bearer ` はSwagger UIが自動で付与するため、トークン文字列だけを入力する。
 
+### 2.7 ヘルスチェック
+
+AWS ECS / ALBから利用するヘルスチェックを提供する。
+
+| 用途 | パス | 認証 |
+| --- | --- | --- |
+| 全体状態 | `/actuator/health` | 不要 |
+| Liveness | `/actuator/health/liveness` | 不要 |
+| Readiness | `/actuator/health/readiness` | 不要 |
+
+ALBはDB接続確認を含むReadinessを使用する。レスポンスの詳細情報は公開せず、状態だけを返す。health以外のActuatorエンドポイントは外部公開しない。
+
 ## 3. API一覧
 
 ### 3.1 認証API

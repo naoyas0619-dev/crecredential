@@ -1092,3 +1092,93 @@ Flyway: Successfully validated 3 migrations
 - AWS ECS Fargate + RDS for PostgreSQLへのデプロイ設計を具体化する
 - 本番用の環境変数、シークレット、ネットワーク、ログ、ヘルスチェック方針を整理する
 - AWSで料金が発生するリソースを作成する前に、構成と費用見込みを確認する
+
+### AWSデプロイ準備
+
+- Spring Boot Actuatorを導入した
+- `/actuator/health` を未認証で取得できるようにした
+- `/actuator/health/liveness` を未認証で取得できるようにした
+- `/actuator/health/readiness` を未認証で取得できるようにした
+- Livenessはアプリケーション状態、Readinessはアプリケーション状態とDB接続を確認するようにした
+- ヘルスレスポンスは詳細を表示せず、状態だけを返すようにした
+- health以外のActuatorエンドポイントは公開しないようにした
+- AWS ECS Fargate、ALB、ECR、RDS、Secrets Manager、CloudWatch Logsを使うデプロイ設計書を作成した
+- 学習環境と本番相当構成を分け、費用とセキュリティの差を整理した
+- VPC、Subnet、Security Group、RDS、ECS Task、ALB Health Checkの推奨値を整理した
+- AWSリソース作成、デプロイ確認、更新、ロールバック、削除の順序を整理した
+- Secrets ManagerでDB認証情報とJWT Secretを管理する方針にした
+- ECRイメージは `latest` ではなくGit Commit SHAで固定する方針にした
+- ECS Task DefinitionのJSONテンプレートを作成した
+- AWS料金が発生する前にPricing CalculatorとAWS Budgetsで確認する手順を追加した
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `build.gradle` | Spring Boot Actuatorを追加 |
+| `src/main/java/com/kurekurecredential/config/SecurityConfig.java` | healthエンドポイントだけを認証対象外に設定 |
+| `src/main/resources/application.properties` | health公開範囲、Liveness、Readinessを設定 |
+| `src/test/resources/application.properties` | 結合テストでも本番と同じhealth設定を使用 |
+| `src/test/java/com/kurekurecredential/config/HealthEndpointIntegrationTest.java` | health公開範囲と応答の結合テストを追加 |
+| `docs/aws-deployment-guide.md` | AWS構成、手順、費用管理、削除方法を追加 |
+| `deploy/ecs-task-definition.example.json` | Fargate Task Definitionのテンプレートを追加 |
+| `README.md` | AWSデプロイ設計書とReadinessへのリンクを追加 |
+| `docs/api-list.md` | ヘルスチェック仕様を追加 |
+
+### テスト対象
+
+- 未認証で基本healthを取得できる
+- 未認証でLivenessを取得できる
+- 未認証でReadinessを取得できる
+- 各healthが `UP` を返す
+- 未公開のActuatorエンドポイントを未認証で取得できない
+- ECS Task Definitionテンプレートが正しいJSON形式である
+
+### 検証結果
+
+以下のコマンドで全59件のテストと実行可能Jar作成が成功した。
+
+```powershell
+.\gradlew.bat clean test bootJar --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 59, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- 更新したDockerイメージを作成できることを確認した
+- UID `10001` の非rootユーザーでコンテナを起動した
+- DockerコンテナからPostgreSQL 16.13へ接続した
+- `/actuator/health` が `200 OK` と `UP` を返すことを確認した
+- `/actuator/health/liveness` が `200 OK` と `UP` を返すことを確認した
+- `/actuator/health/readiness` がDB接続成功時に `200 OK` と `UP` を返すことを確認した
+- `/actuator/env` が未認証では `403 Forbidden` になることを確認した
+- 検証用コンテナとイメージを削除し、PostgreSQLコンテナだけを維持した
+
+### 発生した問題・対応
+
+- 最初のhealth結合テストではLivenessとReadinessが `404 Not Found` になった
+  - 原因: `src/test/resources/application.properties` がテスト時にメイン設定を置き換え、プローブ設定が読み込まれていなかった
+  - 対応: テスト用設定にもhealth公開範囲とプローブグループを明示した
+  - 結果: 基本health、Liveness、Readinessがすべてテストで成功した
+- Windows PowerShellではActuator固有Media Typeの本文がByte配列として表示された
+  - 対応: UTF-8文字列へ明示的に変換してJSON本文を確認した
+  - 結果: 3つのhealthがすべて `{"status":"UP"}` を返していることを確認した
+
+### AWS実デプロイ前の停止点
+
+- AWS CLIが現在のPCにインストールされていないことを確認した
+- AWSリソース作成にはAWS CLIのインストール、認証プロファイル、リージョン、予算上限の確認が必要
+- RDS、ALB、Fargate、Secrets Managerなどは作成すると料金が発生する
+- そのため、実リソース作成はユーザー確認が必要な作業として、設計・テンプレート・ローカル検証までで止める
+
+### 次にやること
+
+- AWS CLI v2をインストールする
+- AWSアカウントへ最小権限で接続するプロファイルを設定する
+- `ap-northeast-1` を使用するか確認する
+- AWS Budgetsの月額予算上限と構築後の削除タイミングを決める
+- 承認後、VPC、RDS、ECR、ECS、ALBを順に作成する

@@ -21,6 +21,7 @@
 - [ER図](docs/er-diagram.md)
 - [API一覧](docs/api-list.md)
 - [DBテーブル定義](docs/db-table-definition.md)
+- [AWSデプロイ設計・手順](docs/aws-deployment-guide.md)
 
 ## ローカルDB起動
 
@@ -53,6 +54,7 @@ Port: 5432
 
 - Swagger UI: <http://localhost:8080/swagger-ui.html>
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
+- Readiness: <http://localhost:8080/actuator/health/readiness>
 
 Swagger UIから認証が必要なAPIを試す場合は、ユーザー登録・ログイン後に取得した `accessToken` を画面上部の `Authorize` へ入力します。`Bearer ` は自動付与されるため、トークン文字列だけを入力します。
 
