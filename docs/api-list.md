@@ -192,7 +192,6 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 | `GET` | `/certification-goals` | 自分の資格目標一覧取得 | 必要 | FR-205 |
 | `GET` | `/certification-goals/{goalId}` | 自分の資格目標詳細取得 | 必要 | FR-206 |
 | `PUT` | `/certification-goals/{goalId}` | 資格目標更新 | 必要 | FR-202, FR-204 |
-| `DELETE` | `/certification-goals/{goalId}` | 資格目標削除 | 必要 | FR-006 |
 
 #### POST /certification-goals
 
@@ -250,6 +249,24 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
   "total": 1
 }
 ```
+
+#### PUT /certification-goals/{goalId}
+
+資格自体は変更せず、目標試験日、週の学習時間、現在レベル、学習開始日、ステータスを更新する。
+
+リクエスト例:
+
+```json
+{
+  "targetExamDate": "2027-01-31",
+  "weeklyStudyHours": 10,
+  "currentLevel": "BASIC",
+  "studyStartDate": "2026-08-01",
+  "status": "IN_PROGRESS"
+}
+```
+
+資格目標は学習履歴を失わないよう物理削除せず、利用を終了する場合はステータスを `CANCELED` に更新する。
 
 ### 3.4 学習計画API
 
@@ -626,4 +643,3 @@ MVPでは物理削除を基本とする。
 - 実績学習時間: `study_logs.study_minutes`
 - タスク完了率: `study_tasks.status`
 - 最新模擬試験: `mock_exam_results.exam_date`
-

@@ -5,9 +5,11 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -33,6 +35,27 @@ public class GlobalExceptionHandler {
 	ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException exception) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND)
 				.body(ErrorResponse.of("NOT_FOUND", exception.getMessage()));
+	}
+
+	@ExceptionHandler(BadRequestException.class)
+	ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException exception) {
+		return ResponseEntity.badRequest()
+				.body(ErrorResponse.of("BAD_REQUEST", exception.getMessage()));
+	}
+
+	@ExceptionHandler({
+			HttpMessageNotReadableException.class,
+			MethodArgumentTypeMismatchException.class
+	})
+	ResponseEntity<ErrorResponse> handleInvalidRequest() {
+		return ResponseEntity.badRequest()
+				.body(ErrorResponse.of("BAD_REQUEST", "リクエストの形式または値が不正です。"));
+	}
+
+	@ExceptionHandler(ForbiddenException.class)
+	ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException exception) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+				.body(ErrorResponse.of("FORBIDDEN", exception.getMessage()));
 	}
 
 	@ExceptionHandler(BadCredentialsException.class)

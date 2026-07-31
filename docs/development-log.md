@@ -408,3 +408,79 @@ Tests: 11, Failures: 0, Errors: 0, Skipped: 0
 
 - 資格目標の作成・一覧・詳細・更新APIを実装する
 - 認証ユーザー本人の資格目標だけを操作できる所有者チェックを実装する
+
+### 資格目標API実装
+
+- `POST /api/certification-goals` を実装した
+- `GET /api/certification-goals` を実装した
+- `status` による資格目標一覧の絞り込みを実装した
+- `GET /api/certification-goals/{goalId}` を実装した
+- `PUT /api/certification-goals/{goalId}` を実装した
+- 資格目標一覧は目標試験日の昇順で返すようにした
+- 資格は作成時に選択し、更新時には変更できない仕様にした
+- 資格目標の終了には物理削除ではなく `CANCELED` ステータスを使用する方針にした
+- JWTから取得したユーザーIDを使って所有者チェックを行うようにした
+- 他ユーザーの資格目標の詳細取得・更新は `403 Forbidden` にした
+- 存在しない資格・資格目標は `404 Not Found` にした
+- 目標試験日が学習開始日より前の場合は `400 Bad Request` にした
+- 週の学習時間は1時間以上に制限した
+- JSONやEnum値が不正な場合の共通 `400 Bad Request` レスポンスを追加した
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/java/com/kurekurecredential/repository/UserCertificationGoalRepository.java` | 所有ユーザー・ステータス別の検索と資格の同時取得を追加 |
+| `src/main/java/com/kurekurecredential/service/goal/CertificationGoalService.java` | 資格目標の作成・一覧・詳細・更新と所有者チェックを追加 |
+| `src/main/java/com/kurekurecredential/web/goal/*.java` | Controllerとリクエスト・レスポンスDTOを追加 |
+| `src/main/java/com/kurekurecredential/web/common/*.java` | 400・403の共通例外処理を追加 |
+| `src/test/java/com/kurekurecredential/web/goal/CertificationGoalControllerIntegrationTest.java` | 資格目標APIの結合テストを追加 |
+| `docs/api-list.md` | 更新APIと `CANCELED` 運用を追記し、削除APIを対象外に変更 |
+
+### テスト対象
+
+- 未認証では資格目標APIを利用できない
+- 認証済みユーザーが資格目標を作成できる
+- 週の学習時間が0の場合は拒否される
+- 目標試験日が学習開始日より前の場合は拒否される
+- 存在しない資格IDは `404 Not Found` になる
+- 不正なEnum値は `400 Bad Request` になる
+- 自分の資格目標だけを一覧取得できる
+- ステータスで一覧を絞り込める
+- 自分の資格目標を詳細取得・更新できる
+- 他ユーザーの資格目標は詳細取得・更新できない
+- 存在しない資格目標IDは `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全19件のテストが成功した。
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 19, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に接続したアプリを8081番ポートで起動した
+- 実APIで資格目標の作成、状態絞り込み一覧、更新を確認した
+- 更新後のステータス `PAUSED` と週の学習時間12時間が返ることを確認した
+- 実DBの `user_certification_goals` に更新内容が保存されていることを確認した
+- 別ユーザーによる詳細取得が `403 Forbidden` になることを確認した
+- API確認後、確認用ユーザー2件を関連する資格目標ごと削除した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 発生した問題・対応
+
+- 共通エラー処理に指定したSpringの例外クラスが現在の依存バージョンに存在せず、初回コンパイルが失敗した
+  - 対応: 存在しない例外クラスを除外し、JSON不正とクエリパラメータ不正を処理する実在クラスだけに変更した
+  - 結果: コンパイルと全19件のテストが成功した
+
+### 次にやること
+
+- 資格目標に紐づく学習計画の作成・一覧・詳細APIを実装する
+- 学習計画でも資格目標の所有者チェックを適用する
