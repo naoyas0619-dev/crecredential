@@ -36,5 +36,7 @@ public interface StudyTaskRepository extends JpaRepository<StudyTask, Long> {
 	@EntityGraph(attributePaths = {"goal", "goal.user", "studyPlanItem"})
 	Optional<StudyTask> findById(Long id);
 
+	long countByGoalId(Long goalId);
+
 	long countByGoalIdAndStatus(Long goalId, TaskStatus status);
 }

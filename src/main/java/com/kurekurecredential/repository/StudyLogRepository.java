@@ -35,5 +35,5 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
 	Optional<StudyLog> findById(Long id);
 
 	@Query("select coalesce(sum(log.studyMinutes), 0) from StudyLog log where log.goal.id = :goalId")
-	Integer sumStudyMinutesByGoalId(@Param("goalId") Long goalId);
+	Long sumStudyMinutesByGoalId(@Param("goalId") Long goalId);
 }

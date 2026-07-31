@@ -632,6 +632,17 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 }
 ```
 
+集計ルール:
+
+- `plannedStudyMinutes`: 資格目標に属する全学習計画項目の `plannedHours` 合計を分へ換算する
+- `actualStudyMinutes`: 資格目標に属する全学習ログの `studyMinutes` を合計する
+- `studyProgressRate`: `actualStudyMinutes / plannedStudyMinutes * 100` を小数第2位まで算出する
+- `taskSummary.completionRate`: 完了タスク数 / 全タスク数を小数第2位まで算出する
+- `latestMockExamResult`: 受験日が最も新しい結果を返し、同日の場合は後から登録した結果を返す
+- 分母となる予定時間またはタスクが0件の場合、割合は `0.00` とする
+- 模擬試験結果がない場合、`latestMockExamResult` は `null` とする
+- 試験日を過ぎている場合、`daysUntilExam` は負数とする
+
 ## 4. 列挙値
 
 ### 4.1 現在レベル

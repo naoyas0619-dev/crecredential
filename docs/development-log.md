@@ -863,3 +863,74 @@ Tests: 51, Failures: 0, Errors: 0, Skipped: 0
 
 - 資格目標ごとの進捗サマリーAPIを実装する
 - 予定・実績学習時間、タスク完了率、最新模擬試験結果を集計する
+
+### 進捗サマリーAPI実装
+
+- `GET /api/certification-goals/{goalId}/summary` を実装した
+- 予定学習時間を学習計画項目の予定時間合計から分単位で算出した
+- 実績学習時間を学習ログの学習時間合計から算出した
+- 学習進捗率を「実績学習時間 / 予定学習時間」で小数第2位まで算出した
+- タスク総数、完了数、未完了数、完了率を集計した
+- 受験日が最新の模擬試験結果と得点差を取得した
+- 同じ受験日の結果が複数ある場合は、後から登録した結果を最新とした
+- 試験日までの日数をアプリ実行日から算出した
+- 試験日を過ぎた場合は日数を負数で返す方針とした
+- 予定時間・タスクが0件の場合は割合を `0.00` とした
+- 模擬試験結果がない場合は `latestMockExamResult` を `null` とした
+- 資格目標の所有者だけが進捗サマリーを取得できるようにした
+- 進捗サマリーは既存テーブルから都度集計し、新しいDBテーブルは追加しなかった
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/java/com/kurekurecredential/repository/StudyPlanItemRepository.java` | 資格目標ごとの予定学習時間合計クエリを追加 |
+| `src/main/java/com/kurekurecredential/repository/StudyLogRepository.java` | 学習時間合計の戻り値を安全な `Long` に変更 |
+| `src/main/java/com/kurekurecredential/repository/StudyTaskRepository.java` | 資格目標ごとの全タスク件数取得を追加 |
+| `src/main/java/com/kurekurecredential/repository/MockExamResultRepository.java` | 最新模擬試験結果取得で同日の登録順を考慮 |
+| `src/main/java/com/kurekurecredential/service/progress/ProgressSummaryService.java` | 進捗サマリー集計と所有者チェックを追加 |
+| `src/main/java/com/kurekurecredential/web/progress/*.java` | Controllerと集計レスポンスDTOを追加 |
+| `src/test/java/com/kurekurecredential/web/progress/ProgressSummaryControllerIntegrationTest.java` | 進捗サマリーAPIの結合テストを追加 |
+| `docs/api-list.md` | 進捗サマリーの集計ルールを追記 |
+
+### テスト対象
+
+- 未認証では進捗サマリーAPIを利用できない
+- 学習計画項目から予定学習時間を集計できる
+- 複数の学習ログから実績学習時間を集計できる
+- 学習進捗率を小数第2位まで算出できる
+- タスク総数、完了数、未完了数、完了率を集計できる
+- 受験日が最新の模擬試験結果を取得できる
+- 進捗データがない場合にゼロと `null` を返せる
+- 他ユーザーは進捗サマリーを取得できない
+- 存在しない資格目標IDは `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全55件のテストが成功した。
+
+```powershell
+.\gradlew.bat test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 55, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に接続したアプリを8081番ポートで起動した
+- 実APIで資格目標、5時間分の学習計画、タスク2件、180分の学習ログ、模擬試験結果を作成した
+- 予定300分、実績180分、進捗率60.00%になることを確認した
+- タスク完了数1件、全2件、完了率50.00%になることを確認した
+- 最新模擬試験の得点差が30になることを確認した
+- SQLで予定時間、実績時間、完了タスク数がAPIレスポンスと一致することを確認した
+- API確認後、確認用ユーザーを関連データごと削除した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 次にやること
+
+- OpenAPIドキュメントとSwagger UIを導入する
+- JWT Bearer認証をSwagger UIから設定できるようにする
+- API仕様JSONとSwagger UIへのアクセスを自動テストする
