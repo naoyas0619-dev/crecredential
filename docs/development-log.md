@@ -623,3 +623,88 @@ Tests: 31, Failures: 0, Errors: 0, Skipped: 0
 
 - 学習タスクの作成・一覧・詳細・更新・完了APIを実装する
 - 学習タスクでも資格目標と学習計画項目の所有者整合性を確認する
+
+### 学習タスクAPI実装
+
+- `POST /api/certification-goals/{goalId}/study-tasks` を実装した
+- `GET /api/study-tasks` を実装した
+- `goalId`、`status`、`dueFrom`、`dueTo` の組み合わせ検索を実装した
+- `GET /api/study-tasks/{taskId}` を実装した
+- `PUT /api/study-tasks/{taskId}` を実装した
+- `PATCH /api/study-tasks/{taskId}/complete` を実装した
+- タスク作成時のステータスを `TODO` にした
+- タスク完了時にステータスを `DONE` にして完了日時を設定するようにした
+- 更新でステータスを `TODO` に戻した場合は完了日時をクリアするようにした
+- 学習計画項目は任意指定とし、同じ資格目標に属する項目だけを関連付けられるようにした
+- タスク期限を資格目標の学習期間内に制限した
+- 一覧は期限の昇順で返すようにした
+- タスク、資格目標、学習計画項目の所有者チェックを実装した
+- 他ユーザーのタスク・計画項目へのアクセスを `403 Forbidden` にした
+- 学習履歴との関連を維持するため、削除APIはMVP対象外にした
+- 学習タスク用テーブルはV1で作成済みのため、Flywayマイグレーションの追加は行わなかった
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/java/com/kurekurecredential/repository/StudyTaskRepository.java` | 所有ユーザーと検索条件を組み合わせたタスク検索を追加 |
+| `src/main/java/com/kurekurecredential/repository/StudyPlanItemRepository.java` | 計画・資格目標・所有者情報の同時取得を追加 |
+| `src/main/java/com/kurekurecredential/service/task/StudyTaskService.java` | タスクの作成・一覧・詳細・更新・完了と整合性チェックを追加 |
+| `src/main/java/com/kurekurecredential/web/task/*.java` | Controllerとリクエスト・レスポンスDTOを追加 |
+| `src/test/java/com/kurekurecredential/web/task/StudyTaskControllerIntegrationTest.java` | 学習タスクAPIの結合テストを追加 |
+| `docs/api-list.md` | 更新・完了・削除方針を追記 |
+
+### テスト対象
+
+- 未認証では学習タスクAPIを利用できない
+- 所有ユーザーが学習計画項目付きのタスクを作成できる
+- 作成時のステータスが `TODO` になる
+- 資格目標の期間外の期限は拒否される
+- 別の資格目標に属する計画項目は関連付けできない
+- 自分のタスクだけを期限順で一覧取得できる
+- 資格目標、ステータス、期限範囲で絞り込める
+- 所有ユーザーがタスクを詳細取得・更新できる
+- `DONE` 更新時に完了日時が設定される
+- `TODO` に戻した場合に完了日時がクリアされる
+- 完了APIでステータスと完了日時が設定される
+- 他ユーザーはタスクや計画項目を操作できない
+- 不正な期限範囲・ステータスを拒否する
+- 存在しないタスクIDは `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全38件のテストが成功した。
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 38, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に接続したアプリを8081番ポートで起動した
+- 実APIで資格目標、学習計画、週次項目、学習タスクを作成した
+- タスクと学習計画項目の関連が保存されることを確認した
+- 完了APIで `DONE` と完了日時が設定されることを確認した
+- 日付条件なし一覧と、資格目標・状態・期限範囲による複合検索を確認した
+- 実DBの `study_tasks` で状態、完了日時、学習計画項目IDを確認した
+- 別ユーザーによるタスク詳細取得が `403 Forbidden` になることを確認した
+- API確認後、確認用ユーザー2件を関連データごと削除した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 発生した問題・対応
+
+- H2では成功したタスク一覧検索が、最初のPostgreSQL確認では例外になった
+  - 原因: JPQLのNULLになり得る日付パラメータについて、PostgreSQLがSQLパラメータの型を判定できなかった
+  - 発生したSQLState: `42P18`
+  - 対応: `dueFrom` と `dueTo` をJPQL内で明示的に `date` 型へキャストした
+  - 結果: 日付条件なしと日付条件ありの両方がPostgreSQLで成功した
+
+### 次にやること
+
+- 学習ログの作成・一覧・詳細・更新APIを実装する
+- 任意指定するタスク・教材と資格目標の整合性、所有者を確認する

@@ -428,7 +428,6 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 | `GET` | `/study-tasks/{taskId}` | タスク詳細取得 | 必要 | FR-505 |
 | `PUT` | `/study-tasks/{taskId}` | タスク更新 | 必要 | FR-506 |
 | `PATCH` | `/study-tasks/{taskId}/complete` | タスク完了 | 必要 | FR-507 |
-| `DELETE` | `/study-tasks/{taskId}` | タスク削除 | 必要 | FR-006 |
 
 #### POST /certification-goals/{goalId}/study-tasks
 
@@ -470,6 +469,19 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 | `status` | 任意 | `TODO` / `DONE` で絞り込み |
 | `dueFrom` | 任意 | 期限開始日 |
 | `dueTo` | 任意 | 期限終了日 |
+
+一覧は期限の昇順で返す。資格目標IDを指定した場合、その資格目標の所有者であることを確認する。
+
+#### PUT /study-tasks/{taskId}
+
+タスク名、内容、期限、見積もり時間、優先度、ステータス、任意の学習計画項目を更新する。
+ステータスを `DONE` にすると完了日時を設定し、`TODO` に戻すと完了日時をクリアする。
+
+#### PATCH /study-tasks/{taskId}/complete
+
+タスクを `DONE` にして完了日時を設定する。既に完了している場合も同じ完了状態を返す。
+
+タスクは学習履歴との関連を維持するため、MVPでは削除APIを提供しない。
 
 ### 3.7 学習ログAPI
 
