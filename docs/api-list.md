@@ -278,6 +278,10 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
 
 #### POST /certification-goals/{goalId}/study-plans
 
+学習計画は資格目標の学習開始日から目標試験日までの範囲内で作成する。
+週ごとの学習計画項目を1件以上登録し、同じ計画内で週番号は重複させない。
+学習計画項目の推奨期間は、学習計画全体の期間内に設定する。
+
 リクエスト例:
 
 ```json
@@ -301,6 +305,32 @@ MVPでは、レスポンスはシンプルなJSONオブジェクトで返す。
   ]
 }
 ```
+
+#### GET /certification-goals/{goalId}/study-plans
+
+資格目標に紐づく学習計画を開始日の昇順で返す。
+
+レスポンス例:
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "goalId": 1,
+      "title": "AWS SAA 12週間学習計画",
+      "startDate": "2026-07-01",
+      "endDate": "2026-09-23",
+      "totalPlannedHours": 96
+    }
+  ],
+  "total": 1
+}
+```
+
+#### GET /study-plans/{studyPlanId}
+
+学習計画と週ごとの学習計画項目を取得する。項目は週番号の昇順で返す。
 
 レスポンス例:
 

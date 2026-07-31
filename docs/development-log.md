@@ -484,3 +484,73 @@ Tests: 19, Failures: 0, Errors: 0, Skipped: 0
 
 - 資格目標に紐づく学習計画の作成・一覧・詳細APIを実装する
 - 学習計画でも資格目標の所有者チェックを適用する
+
+### 学習計画API実装
+
+- `POST /api/certification-goals/{goalId}/study-plans` を実装した
+- `GET /api/certification-goals/{goalId}/study-plans` を実装した
+- `GET /api/study-plans/{studyPlanId}` を実装した
+- 学習計画一覧は開始日の昇順で返すようにした
+- 学習計画詳細の週次項目は週番号の昇順で返すようにした
+- 学習計画は資格目標の学習開始日から目標試験日までの範囲内に制限した
+- 学習計画項目を1件以上必須にした
+- 同一計画内の週番号重複を禁止した
+- 学習計画項目の推奨期間を学習計画全体の期間内に制限した
+- 資格目標と学習計画の所有者チェックを実装した
+- 他ユーザーによる作成・一覧・詳細取得を `403 Forbidden` にした
+- 存在しない資格目標・学習計画を `404 Not Found` にした
+- 学習計画用テーブルはV1で作成済みのため、Flywayマイグレーションの追加は行わなかった
+
+### 作成・更新した主なファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/main/java/com/kurekurecredential/repository/StudyPlanRepository.java` | 開始日順の一覧取得と所有者情報の同時取得を追加 |
+| `src/main/java/com/kurekurecredential/service/studyplan/StudyPlanService.java` | 学習計画の作成・一覧・詳細と入力・所有者チェックを追加 |
+| `src/main/java/com/kurekurecredential/web/studyplan/*.java` | Controllerとリクエスト・レスポンスDTOを追加 |
+| `src/test/java/com/kurekurecredential/web/studyplan/StudyPlanControllerIntegrationTest.java` | 学習計画APIの結合テストを追加 |
+| `docs/api-list.md` | 学習計画の入力規則と一覧・詳細仕様を追記 |
+
+### テスト対象
+
+- 未認証では学習計画APIを利用できない
+- 所有ユーザーが学習計画と週次項目を作成できる
+- 作成結果の週次項目が週番号順になる
+- 終了日が開始日より前の計画は拒否される
+- 資格目標の学習期間外の計画は拒否される
+- 計画期間外の推奨日を持つ項目は拒否される
+- 項目が空の計画は拒否される
+- 週番号が重複した計画は拒否される
+- 所有ユーザーが計画を開始日順で一覧取得できる
+- 所有ユーザーが計画詳細と週次項目を取得できる
+- 他ユーザーは計画の作成・一覧・詳細取得ができない
+- 存在しない資格目標・学習計画は `404 Not Found` になる
+
+### 検証結果
+
+以下のコマンドで全26件のテストが成功した。
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+```
+
+結果:
+
+```txt
+BUILD SUCCESSFUL
+Tests: 26, Failures: 0, Errors: 0, Skipped: 0
+```
+
+- PostgreSQL 16.13に接続したアプリを8081番ポートで起動した
+- 実APIで資格目標と学習計画、週次項目2件を作成した
+- 作成レスポンスの週次項目が週番号順になることを確認した
+- 学習計画一覧1件と詳細の週次項目2件を取得できることを確認した
+- 実DBの `study_plans` と `study_plan_items` に計画1件・項目2件が保存されることを確認した
+- 別ユーザーによる学習計画詳細取得が `403 Forbidden` になることを確認した
+- API確認後、確認用ユーザー2件を資格目標・学習計画・週次項目ごと削除した
+- 検証用Spring Bootプロセスを停止し、PostgreSQLコンテナは起動状態を維持した
+
+### 次にやること
+
+- 初期教材マスタをFlywayで投入する
+- 教材一覧・詳細取得APIを実装する
